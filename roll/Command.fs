@@ -36,7 +36,8 @@ let rec executeVerbose = function
                             printfn "%-4d (%s // %s)" <| List.sum taken <| splice taken <| splice dropped
     | Constant n -> printfn "%d" n
     | Multiple s -> List.iter executeVerbose s
-    | Sum _ | Verbose _ | Nothing -> printfn "Unimplemented command"
+    | Sum _ | Verbose _  -> printfn "Unimplemented command"
+    | Nothing -> ()
 
 
 let rec calculate = function
