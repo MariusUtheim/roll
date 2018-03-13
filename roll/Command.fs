@@ -26,7 +26,8 @@ let rec parseCommand str =
     | _ -> printfn "Unknown command"; Nothing
 
     
-let private splice = List.map string >> List.reduce(sprintf "%s + %s")
+let private splice = List.map string >> List.reduce(sprintf "%s+%s")
+
 let rec executeVerbose = function
     | Roll (n, s) -> let rolls = List.init n (fun _ -> 1 + rng.Next(s))
                      printfn "%-4d (%s)" <| List.sum rolls <| splice rolls 
