@@ -1,5 +1,7 @@
 # roll
 
+A dice roller for the command line.
+
 Usage:
 
     roll <cmd>
@@ -26,3 +28,19 @@ Command specification
     
     -v, --verbose <cmd> - execute the command verbosely. Equivalent to !cmd
     
+Examples
+
+    roll 1d20
+    17
+    
+    roll 1d20+6
+    23
+    
+    roll 4d6d1
+    11
+    
+    roll 1d6+1d4
+    5
+    
+    roll -v 3d6
+    8    (2+5+1)
