@@ -12,6 +12,7 @@ Command specification
     (n)d(s) - roll n s-sided dice
     (k) - return the constant number k, equivalent to kd1
     (n)d(s)d(d) - roll n s-sided dice, then drop the d smallest ones
+    (n)*<cmd> - execute cmd and multiply the result by n
     (m)x<cmd> - execute cmd m times and sum the results
     !<cmd> - execute the command verbosely, showing intermediate results
     -c, --character - roll a character. Equivalent to 6x4d6d1
@@ -29,7 +30,7 @@ let main argv =
          | cmd -> let cmd = parseCommand argv.[0]
                   let result = calculate cmd
                   if result <> 0 then printfn "%d" <| calculate cmd
-
+                
     #if DEBUG
     System.Console.ReadKey() |> ignore
     #endif

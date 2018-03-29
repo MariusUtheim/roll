@@ -11,6 +11,7 @@ type Command =
     | Sum of Command * Command
     | Verbose of Command
     | Multiple of Command list
+    | Multiplier of int * Command
     | Nothing
     
 
@@ -18,6 +19,7 @@ type Command =
 let rec parseCommand str =
     match str with
     | Regex "(\d+)x(.+)" [ Integer n; cmd ] -> Multiple <| List.init n (fun _ -> parseCommand cmd)
+    | Regex "(\d+)\*(.+)" [ Integer n; cmd ] -> Multiplier (n, parseCommand cmd)
     | Regex "!([^!]+)" [ cmd ] -> Verbose(parseCommand cmd)
     | Regex "(.+)\\+(.+)" [ left; right ] -> Sum(parseCommand left, parseCommand right)
     | Regex "(\d+)d(\d+)d(\d+)" [ Integer n; Integer s; Integer d ] -> RollDrop(n, s, d)
@@ -36,7 +38,7 @@ let rec executeVerbose = function
                             printfn "%-4d (%s // %s)" <| List.sum taken <| splice taken <| splice dropped
     | Constant n -> printfn "%d" n
     | Multiple s -> List.iter executeVerbose s
-    | Sum _ | Verbose _  -> printfn "Unimplemented command"
+    | Sum _ | Verbose _ | Multiplier _ -> printfn "Unimplemented command"
     | Nothing -> ()
 
 
@@ -46,6 +48,7 @@ let rec calculate = function
     | Constant n -> n
     | Sum (left, right) -> calculate left + calculate right
     | Multiple s -> List.sumBy calculate s
+    | Multiplier (n, s) -> n * calculate s
     | Verbose cmd -> executeVerbose cmd; 0
     | Nothing -> 0
    
