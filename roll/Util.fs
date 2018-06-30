@@ -6,6 +6,7 @@ let (|Integer|_|) str =
     | (true, value) -> Some value
     | (false, _) -> None
 
+
 let (|Regex|_|) pattern str =
     let regex = System.Text.RegularExpressions.Regex("^" + pattern + "$")
     let m = regex.Match(str)

@@ -1,0 +1,32 @@
+﻿
+roll 4d6+2
+13
+
+roll --character
+15  (6+5+4 // 2)
+14  (5+5+4 // 3)
+17  (6+6+5 // 1)
+10  (4+4+2 // 1)
+13  (6+5+2 // 1)
+11  (6+3+2 // 1)
+
+
+roll --attack Mature Adult Black Dragon
+Bite        33  (16)
+Claw        39  (11)
+Claw        35  (12)
+Wing        46!!(9)
+          + 33  (15)
+Wing        37  (13)
+Tail Slap   27  (25)
+
+
+roll --attack Mature Adult Black Dragon --ac 37
+Bite        Miss
+Claw        Hit (11)
+Claw        Miss
+Wing        Crit (24 = 9 + 15)
+Wing        Hit (13)
+Tail Slap   Miss
+-------------------------
+Total damage: 48
