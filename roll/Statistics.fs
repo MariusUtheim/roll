@@ -12,6 +12,7 @@ let rec mean cmd =
     | DiceDrop _ -> failwith "Calculating statistics on DiceDrop is not implemented"
     | Constant c -> float c
     | Sum (cmd1, cmd2) -> mean cmd1 + mean cmd2
+    | Difference (cmd1, cmd2) -> mean cmd1 - mean cmd2
     | Multiplier (n, cmd) -> float n * mean cmd
     | Nothing -> 0.
 
@@ -20,7 +21,7 @@ let rec variance cmd =
     | Dice (n, s) -> float(n * (s * s - 1)) / 12.
     | DiceDrop _ -> failwith "Calculating statistics on DiceDrop is not implemented"
     | Constant _ -> 0.
-    | Sum (cmd1, cmd2) -> variance cmd1 + variance cmd2
+    | Sum (cmd1, cmd2) | Difference (cmd1, cmd2) -> variance cmd1 + variance cmd2
     | Multiplier (n, cmd) -> float n * variance cmd
     | Nothing -> 0.
 
@@ -30,15 +31,16 @@ let rec maximum cmd =
     | DiceDrop (n, s, d) -> (n - d) * s
     | Constant c -> c
     | Sum (cmd1, cmd2) -> maximum cmd1 + maximum cmd2
+    | Difference (cmd1, cmd2) -> maximum cmd1 - minimum cmd2
     | Multiplier (n, cmd) -> n * maximum cmd
     | Nothing -> 0
-
-let rec minimum cmd =
+and minimum cmd =
     match cmd with
     | Dice (n, s) -> n
     | DiceDrop (n, s, d) -> (n - d)
     | Constant c -> c
     | Sum (cmd1, cmd2) -> minimum cmd1 + minimum cmd2
+    | Difference (cmd1, cmd2) -> minimum cmd1 - maximum cmd2
     | Multiplier (n, cmd) -> n * minimum cmd
     | Nothing -> 0
   

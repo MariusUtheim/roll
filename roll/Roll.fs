@@ -10,6 +10,7 @@ type RollCommand =
     | DiceDrop of int * int * int
     | Constant of int
     | Sum of RollCommand * RollCommand
+    | Difference of RollCommand * RollCommand
     | Multiplier of int * RollCommand
     | Nothing
     with 
@@ -20,6 +21,7 @@ type RollCommand =
             | DiceDrop (n, s, d) -> sprintf "%dd%dd%d" n s d
             | Constant c -> c.ToString()
             | Sum (cmd1, cmd2) -> sprintf "%s+%s" (cmd1.ToString()) (cmd2.ToString())
+            | Difference (cmd1, cmd2) -> sprintf "%s-%s" (cmd1.ToString()) (cmd2.ToString())
             | Multiplier (n, cmd) -> sprintf "%dx%s" n (cmd.ToString())
             | Nothing -> ""
 
@@ -41,6 +43,9 @@ let rec tryParseCommand str =
     | Regex "(.+)\\+(.+)" [ left; right ] -> match (tryParseCommand left, tryParseCommand right) with
                                              | (Some left, Some right) -> Some <| Sum(left, right)
                                              | _ -> None
+    | Regex "(.+)-(.+)" [ left; right ] -> match (tryParseCommand left, tryParseCommand right) with
+                                           | (Some left, Some right) -> Some <| Difference(left, right)
+                                           | _ -> None
     | Regex "(\d+)x(.+)" [ Integer n; cmd ] -> match tryParseCommand cmd with 
                                                | Some cmd -> Some <| Multiplier(n, cmd)
                                                | _ -> None
@@ -66,6 +71,7 @@ let rec roll cmd =
                                 |> List.take (n - d)
         | Constant c -> [ c ]
         | Sum (cmd1, cmd2) -> (roll cmd1).Rolls @ (roll cmd2).Rolls
+        | Difference (cmd1, cmd2) -> (roll cmd1).Rolls @ (List.map (~-) (roll cmd2).Rolls)
         | Multiplier (m, cmd) -> (roll cmd).Rolls
                                  |> List.map (( *) m)
         | Nothing -> []
@@ -79,7 +85,7 @@ let rec rollVerbose cmd =
             | Dice _ -> result.Description
             | DiceDrop (n, _, _) -> "Verbose dice drops are not yet implemented"
             | Constant c -> string c
-            | Sum _ -> failwith "Verbose sums are not yet implemented"
+            | Sum _ | Difference _ -> failwith "Verbose sums are not yet implemented"
             | Multiplier _ -> failwith "Verbose multiplications are not yet implemented"
             | Nothing -> ""
 
