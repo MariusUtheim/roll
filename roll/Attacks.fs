@@ -8,6 +8,9 @@ type Attack = {
     CritDamage : RollCommand;
 }
 
+let create name bonus damage threatRange critDamage = 
+    { Name = name; Bonus = bonus; Damage = damage; ThreatRange = threatRange; CritDamage = critDamage }
+
 type AttackRoll = {
     AttackRoll : int;
     DamageRoll : RollResult;

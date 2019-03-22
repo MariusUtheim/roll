@@ -14,7 +14,7 @@ type AttackerCsvRecord = {
 }
 
 
-let writeAttackers (attackers : IDictionary<string, Attack list>) (csvFile : string) = 
+let writeAttackers (csvFile : string) (attackers : IDictionary<string, Attack list>) = 
 
     let records =
         attackers
@@ -43,5 +43,5 @@ let loadAttacks (csvFile : string) =
                                                        Damage = &record.Damage; ThreatRange = record.ThreatRange;
                                                        CritDamage = &record.CritDamage } ]
                                      (key, attacks))
-    |> dict
+    |> Map.ofSeq
 
