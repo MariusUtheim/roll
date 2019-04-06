@@ -28,7 +28,7 @@ Command specification
     -s <cmd> -dc <dc> - show statistics for cmd and p-value of beating the specified DC
     -s <attacker> -ac <ac> - show statistics for the attacker against the specified AC
     -a <attacker> - make attack rolls and damage rolls for the specified attacker
-    -a <attacker> -ac <ac> - make attack rolls and damage rolls for the specified attacker against the specified AC
+    -a <attacker> [-ac <ac>] [-r <r>] - make attack rolls and damage rolls for the specified attacker. If ac is specified, the number of hits and total damage is calculated automatically. If r is specified, the attack is repeated that many times.
     -a --list - Show a list of all attacker names
     -a --list <attacker> - Show a list of all attacks made by the specified attacker
     -a --file - Show the name of then file that is being used for attacks
@@ -74,18 +74,45 @@ let performAttacks attacker =
     printfn "------------------------------"
     Attacks.performAttacks attacks
 
+let performManyAttacks attacker repetitions =
+    match repetitions with
+    | r when r <= 0 -> printfn "number of repetitions must be positive"
+    | r when r >= 100 -> printfn "number of repetitions must be less than 100"
+    | r -> let attacks = getAttacks attacker
+           printfn "%s attacking %d times" attacker repetitions
+           printfn "------------------------------"
+           if List.length attacks = 1 then
+               for i in 1 .. repetitions do 
+                   printf "%2d: " i
+                   Attacks.performAttacks attacks
+            else
+               for i in 1 .. repetitions do
+                   printfn "%2d: " i
+                   Attacks.performAttacks attacks
+                   printfn ""
+
 let performAttacksAgainst ac attacker = 
     let attacks = getAttacks attacker
     printfn "%s attacking vs. AC %d" attacker ac
     printfn "------------------------------"
     Attacks.performAttacksAgainst ac attacks
 
-let performManyAttacksAgainst ac attacker repeat =
-    let attacks = getAttacks attacker
-    printfn "%dx %s attacking vs. AC %d" repeat attacker ac
-    for _ in 1 .. repeat do
-        printfn "------------------------------"
-        Attacks.performAttacksAgainst ac attacks
+let performManyAttacksAgainst ac attacker repetitions =
+    match repetitions with
+    | r when r <= 0 -> printfn "number of repetitions must be positive"
+    | r when r >= 100 -> printfn "number of repetitions must be less than 100"
+    | r -> let attacks = getAttacks attacker
+           printfn "%dx %s attacking vs. AC %d" repetitions attacker ac
+           printfn "------------------------------"
+           if List.length attacks = 1 then
+               for i in 1 .. repetitions do 
+                   printfn "%2d: " i
+                   Attacks.performAttacksAgainst ac attacks
+           else
+               for i in 1 .. repetitions do
+                   printfn "%2d: " i
+                   Attacks.performAttacksAgainst ac attacks
+                   printfn ""
 
 let writeAttacksPath path =
     System.IO.File.WriteAllText(".config", path)
@@ -141,22 +168,36 @@ let parse (argv : string list) =
     match argv with
     | [ ] -> printfn "%d" &&"1d20"
     | [ RollCommand cmd ] -> printfn "%d" <| rollSum cmd
+
     | [ Either("-c", "--character") ] -> for _ in 1 .. 6 do rollVerbose &"4d6d1" |> ignore
+
     | [ Either("-v", "--verbose"); RollCommand cmd ] -> rollVerbose cmd
+
     | [ Either("-s", "--stat"); RollCommand cmd ] -> statistics cmd
     | [ Either("-s", "--stat"); RollCommand cmd; "-dc"; Integer dc ] -> statisticsDC dc cmd
     | [ Either("-s", "--stat"); attacker; "-ac"; Integer ac ] -> statisticsAC ac attacker
+
+    | [ "-o" ] -> openText "./" 
+    | [ "-oa" ] | [ "-o"; Either("-a", "--attack") ] -> openText attacksCsv
+
     | [ "-af" ] | [ Either("-a", "--attack"); Either("-f", "--file") ] -> printfn "%s" attacksCsv
     | [ "-af"; path ] | [ Either("-a", "--attack"); Either("-f", "--file"); path ] -> writeAttacksPath path
     | [ Either("-a", "--attack"); "--list" ] -> listAttackers ()
     | [ Either("-a", "--attack"); "--list"; attacker ] -> listAttacks attacker
     | [ Either("-a", "--attack"); "--new"; attacker; attackName; Integer bonus; RollCommand damage; Integer threatRange; RollCommand critDamage ] -> newAttacker attacker attackName bonus damage threatRange critDamage
-    | Either("-a", "--attack") :: "--new" :: _ -> newUsage()
+    |   Either("-a", "--attack") :: "--new" :: _ -> newUsage()
     | [ Either("-a", "--attack"); "--remove"; attacker; attack ] -> removeAttack attacker attack 
     | [ Either("-a", "--attack"); "--removeAll"; attacker ] -> removeAttacker attacker
-    | [ Either("-a", "--attack"); attacker ] -> performAttacks attacker
-    | [ Either("-a", "--attack"); attacker; "-ac"; Integer ac ] -> performAttacksAgainst ac attacker
-    | [ Either("-a", "--attack"); attacker;"-ac"; Integer ac; Either("-r", "--repeat"); Integer repetitions ] -> performManyAttacksAgainst ac attacker repetitions
-    | [ "-o" ] -> openText "./" 
-    | [ "-oa" ] | [ "-o"; Either("-a", "--attack") ] -> openText attacksCsv
+
+    | [ Either("-a", "--attack"); attacker ] 
+        -> performAttacks attacker
+    | [ Either("-a", "--attack"); attacker; "-ac"; Integer ac ]
+        -> performAttacksAgainst ac attacker
+    | [ Either("-a", "--attack"); Integer repetitions; attacker ]
+    | [ Either("-a", "--attack"); attacker; Either("-r", "--repeat"); Integer repetitions ]
+        -> performManyAttacks attacker repetitions
+    | [ Either("-a", "--attack"); attacker; "-ac"; Integer ac; Either("-r", "--repeat"); Integer repetitions ]
+    | [ Either("-a", "--attack"); Integer repetitions; attacker; "-ac"; Integer ac ]
+        -> performManyAttacksAgainst ac attacker repetitions
+
     | _ -> usage()

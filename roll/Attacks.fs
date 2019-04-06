@@ -49,7 +49,6 @@ let display record =
 
 let performAttacks attacks =
     List.iter (rollAttack >> display) attacks
-    printfn ""
 
 let performAttacksAgainst ac attacks =
     let attackResults = List.map rollAttack attacks
@@ -58,24 +57,26 @@ let performAttacksAgainst ac attacks =
 
     for result in attackResults do
         if result.AttackResult.AttackRoll = 1
-           || (result.AttackToHit < ac && result.AttackResult.AttackRoll <> 20) then
-            printfn "%-20s%s" result.Attack.Name (if result.AttackResult.AttackRoll > 1 then "Miss"
-                                                  elif &&"1d5" = 1 then "Miss??"
-                                                  else "Miss?")
+         || (result.AttackToHit < ac && result.AttackResult.AttackRoll <> 20) then
+            printfn "%-20s%2d  %s" result.Attack.Name result.AttackResult.AttackRoll
+                                   (if result.AttackResult.AttackRoll > 1 then "Miss"
+                                    elif &&"1d5" = 1 then "Miss??" else "Miss?")
         else
             totalDamage <- totalDamage + result.AttackResult.DamageRoll.Sum
             nHits <- nHits + 1
 
             if result.AttackResult.AttackRoll >= result.Attack.ThreatRange && result.CritToHit >= ac then
-                printfn "%-20sCrit! %3d (= %s) [%d]" result.Attack.Name result.AttackResult.DamageRoll.Sum
-                                                     result.AttackResult.DamageRoll.Description totalDamage
+                printfn "%-20s%2d  Crit! %3d [%3d] (= %s)" result.Attack.Name result.AttackResult.DamageRoll.Sum
+                                                          result.AttackResult.AttackRoll totalDamage
+                                                          result.AttackResult.DamageRoll.Description
                 let crit = Option.get result.CritResult
                 totalDamage <- totalDamage + crit.DamageRoll.Sum
-                printfn "%-24s+ %3d (= %s) [%d]" "!" crit.DamageRoll.Sum crit.DamageRoll.Description totalDamage
+                printfn "%22d%4s %3d [%3d] (= %s)" crit.AttackRoll "!" crit.DamageRoll.Sum totalDamage crit.DamageRoll.Description
             else
-                printfn "%-20sHit   %3d (= %s) [%d]" result.Attack.Name 
-                                                    result.AttackResult.DamageRoll.Sum result.AttackResult.DamageRoll.Description
-                                                    totalDamage
+                printfn "%-20s%2d  Hit   %3d [%3d] (= %s)" result.Attack.Name result.AttackResult.AttackRoll 
+                                                          result.AttackResult.DamageRoll.Sum totalDamage
+                                                          result.AttackResult.DamageRoll.Description
+
 
     printfn "------------------------------"
     printfn "%-26s%3d" "Number of hits:" nHits
