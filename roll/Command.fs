@@ -72,47 +72,45 @@ let performAttacks attacker =
     let attacks = (getAttacks attacker)
     printfn "%s attacking" attacker
     printfn "------------------------------"
-    Attacks.performAttacks attacks
+    Displayer.performAttacks attacks
 
 let performManyAttacks attacker repetitions =
     match repetitions with
     | r when r <= 0 -> printfn "number of repetitions must be positive"
     | r when r >= 100 -> printfn "number of repetitions must be less than 100"
+    | 1 -> performAttacks attacker 
     | r -> let attacks = getAttacks attacker
            printfn "%s attacking %d times" attacker repetitions
            printfn "------------------------------"
-           if List.length attacks = 1 then
-               for i in 1 .. repetitions do 
-                   printf "%2d: " i
-                   Attacks.performAttacks attacks
-            else
-               for i in 1 .. repetitions do
-                   printfn "%2d: " i
-                   Attacks.performAttacks attacks
-                   printfn ""
+           match attacks with
+           | [] -> ()
+           | [ attack ] -> Attacks.repeated repetitions attack |> Displayer.performAttacks
+           | attacks -> for i in 1 .. repetitions do
+                            printfn "%2d: " i
+                            Displayer.performAttacks attacks
+                            printfn ""
 
 let performAttacksAgainst ac attacker = 
     let attacks = getAttacks attacker
     printfn "%s attacking vs. AC %d" attacker ac
     printfn "------------------------------"
-    Attacks.performAttacksAgainst ac attacks
+    Displayer.performAttacksAgainst ac attacks
 
 let performManyAttacksAgainst ac attacker repetitions =
     match repetitions with
     | r when r <= 0 -> printfn "number of repetitions must be positive"
     | r when r >= 100 -> printfn "number of repetitions must be less than 100"
+    | 1 -> performAttacksAgainst ac attacker
     | r -> let attacks = getAttacks attacker
            printfn "%dx %s attacking vs. AC %d" repetitions attacker ac
            printfn "------------------------------"
-           if List.length attacks = 1 then
-               for i in 1 .. repetitions do 
-                   printfn "%2d: " i
-                   Attacks.performAttacksAgainst ac attacks
-           else
-               for i in 1 .. repetitions do
-                   printfn "%2d: " i
-                   Attacks.performAttacksAgainst ac attacks
-                   printfn ""
+           match attacks with
+           | [] -> ()
+           | [ attack ] -> Attacks.repeated repetitions attack |> Displayer.performAttacksAgainst ac
+           | attacks -> for i in 1 .. repetitions do
+                            printfn "%2d: " i
+                            Displayer.performAttacksAgainst ac attacks
+                            printfn ""
 
 let writeAttacksPath path =
     System.IO.File.WriteAllText(".config", path)

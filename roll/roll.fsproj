@@ -79,6 +79,7 @@
     <Compile Include="Roll.fs" />
     <Content Include="packages.config" />
     <Compile Include="Attacks.fs" />
+    <Compile Include="Displayer.fs" />
     <Compile Include="Statistics.fs" />
     <Compile Include="CsvLoader.fs" />
     <Compile Include="Command.fs" />
