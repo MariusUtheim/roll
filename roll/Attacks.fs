@@ -12,7 +12,7 @@ let create name bonus damage threatRange critDamage =
     { Name = name; Bonus = bonus; Damage = damage; ThreatRange = threatRange; CritDamage = critDamage }
 
 let repeated nRepetitions attack = 
-    List.init nRepetitions (fun n -> { attack with Name = sprintf "%d: %s" n attack.Name })
+    List.init nRepetitions (fun n -> { attack with Name = sprintf "%d: %s" (n+1) attack.Name })
 
 
 let fullAttack nAttacks attack =
