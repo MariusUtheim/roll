@@ -38,6 +38,7 @@ Command specification
     -oa - Open the current csv file defining attackers
     "
 
+
 let attackerNotFound attacker =
     failwith("Attacker " + attacker + " not found.")
 
@@ -64,14 +65,14 @@ let statisticsAC ac attacker =
         let mean = Statistics.meanDamageAgainst ac attack
         totalMeanDmg <- totalMeanDmg + mean
         printfn "%-20s%-3.2f" attack.Name mean
-    printfn "------------------------------"
+    Displayer.hline()
     printfn "%-20s%.2f\n" "Total mean damage:" totalMeanDmg
 
 
 let performAttacks attacker =
     let attacks = (getAttacks attacker)
     printfn "%s attacking" attacker
-    printfn "------------------------------"
+    Displayer.hline()
     Displayer.performAttacks attacks
 
 let performManyAttacks attacker repetitions =
@@ -81,7 +82,7 @@ let performManyAttacks attacker repetitions =
     | 1 -> performAttacks attacker 
     | r -> let attacks = getAttacks attacker
            printfn "%s attacking %d times" attacker repetitions
-           printfn "------------------------------"
+           Displayer.hline()
            match attacks with
            | [] -> ()
            | [ attack ] -> Attacks.repeated repetitions attack |> Displayer.performAttacks
@@ -93,7 +94,7 @@ let performManyAttacks attacker repetitions =
 let performAttacksAgainst ac attacker = 
     let attacks = getAttacks attacker
     printfn "%s attacking vs. AC %d" attacker ac
-    printfn "------------------------------"
+    Displayer.hline()
     Displayer.performAttacksAgainst ac attacks
 
 let performManyAttacksAgainst ac attacker repetitions =
@@ -103,7 +104,7 @@ let performManyAttacksAgainst ac attacker repetitions =
     | 1 -> performAttacksAgainst ac attacker
     | r -> let attacks = getAttacks attacker
            printfn "%dx %s attacking vs. AC %d" repetitions attacker ac
-           printfn "------------------------------"
+           Displayer.hline()
            match attacks with
            | [] -> ()
            | [ attack ] -> Attacks.repeated repetitions attack |> Displayer.performAttacksAgainst ac

@@ -2,6 +2,8 @@
 
 open Attacks
 
+let hline () = printfn "----------------------------------------"
+
 let display record =
     let exclamationMarks = if record.AttackResult.AttackRoll = 20 then "!!"
                            elif record.AttackResult.AttackRoll = 1 then (if &&"1d5" = 1 then "??" else "?")
@@ -10,7 +12,7 @@ let display record =
     printfn "%-20s%3d%-2s %3d (= %s)" record.Attack.Name record.AttackToHit exclamationMarks
                                  record.AttackResult.DamageRoll.Sum record.AttackResult.DamageRoll.Description
     record.CritResult |> Option.iter (
-        fun crit -> printfn "%-18s+ %3d   %3d (= %s)" "!" record.CritToHit crit.DamageRoll.Sum crit.DamageRoll.Description
+        fun crit -> printfn "%-18s+ %3d   %3d (= %3s)" "!" record.CritToHit crit.DamageRoll.Sum crit.DamageRoll.Description
     )
 
 
@@ -46,6 +48,6 @@ let performAttacksAgainst ac attacks =
                                                           result.AttackResult.DamageRoll.Description
 
 
-    printfn "------------------------------"
+    hline()
     printfn "%-26s%3d" "Number of hits:" nHits
     printfn "%-26s%3d\n" "Total damage:" totalDamage
