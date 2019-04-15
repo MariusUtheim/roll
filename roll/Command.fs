@@ -1,13 +1,14 @@
 ﻿module Command
+open System.IO
 
 //----------------------------------------------------------------------
 
 let private attacksCsv = 
-    try System.IO.File.ReadAllText("roll.config")
-    with :? System.IO.IOException -> 
-        printfn "Could not find configuration. Generating config file..."
-        try System.IO.File.WriteAllText("roll.config", "Attacks.csv")
-        with :? System.IO.IOException -> printfn "Warning: Could not generate configuration file."
+    try File.ReadAllText("roll.config")
+    with :? IOException -> 
+        printfn " WARNING: Could not find configuration. Generating config file..."
+        try File.WriteAllText("roll.config", "Attacks.csv")
+        with :? IOException -> printfn " WARNING: Could not generate configuration file."
         "Attacks.csv"
 
 let (|Either|_|) (this, that) str =
@@ -27,7 +28,7 @@ let attackerNotFound attacker =
 
 let private getAllAttackers() =
     try CsvLoader.loadAttacks attacksCsv
-    with :? System.IO.IOException ->
+    with :? IOException ->
         failwith("Could not open attacks file " + attacksCsv)
 
 
@@ -70,12 +71,16 @@ let openFolder () = openText "./"
 let openAttackers () = openText attacksCsv
 
 let getConfig config =
-    try printfn "%s" <| System.IO.File.ReadAllText("roll.config")
-    with :? System.IO.IOException ->
+    try printfn "%s" <| File.ReadAllText("roll.config")
+    with :? IOException ->
         failwith "Could not read roll.config"
 
-let setConfig config = System.IO.File.WriteAllText("roll.config", config)
-
+let setConfig config =
+    try if not(File.Exists config) then CsvLoader.writeAttackers config Map.empty
+        File.WriteAllText("roll.config", config)
+    with :? IOException ->
+        failwith "Could not write"
+       
 let listAttackers () =
     let attackers = getAllAttackers()
     attackers |> Map.iter (fun attacker _ -> printfn "%s" attacker )
