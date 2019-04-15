@@ -1,48 +1,35 @@
 ﻿module Command
 
+//----------------------------------------------------------------------
 
 let private attacksCsv = 
-    try System.IO.File.ReadAllText(".config")
-    with :? System.IO.IOException -> "Attacks.csv"
+    try System.IO.File.ReadAllText("roll.config")
+    with :? System.IO.IOException -> 
+        printfn "Could not find configuration. Generating config file..."
+        try System.IO.File.WriteAllText("roll.config", "Attacks.csv")
+        with :? System.IO.IOException -> printfn "Warning: Could not generate configuration file."
+        "Attacks.csv"
 
 let (|Either|_|) (this, that) str =
     if str = this || str = that then Some () else None
 
 let (|RollCommand|_|) str = tryParseCommand str
 
-let usage () = 
-    printfn  <| "Usage:
-    roll <cmd>
-    roll -c
-    roll -v cmd
+let (|VerboseRollCommand|_|) (str : string) =
+    if str.[0] = '!' then tryParseCommand (str.Substring 1)
+    else None
 
-Command specification
-    <cmd1>+<cmd2> - sum the results of cmd1 and cmd2
-    (n)d(s) - roll n s-sided dice
-    (k) - return the constant number k, equivalent to kd1
-    (n)d(s)d(d) - roll n s-sided dice, then drop the d smallest ones
-    (n)x<cmd> - execute cmd and multiply the result by n
-    -c - roll a character. Equivalent to 6x4d6d1
-    -v <cmd> - execute the command verbosely, displaying all intermedediate rolls.
-    -s <cmd> - display mean and standard deviation for the result cmd
-    -s <cmd> -dc <dc> - show statistics for cmd and p-value of beating the specified DC
-    -s <attacker> -ac <ac> - show statistics for the attacker against the specified AC
-    -a <attacker> - make attack rolls and damage rolls for the specified attacker
-    -a <attacker> [-ac <ac>] [-r <r>] - make attack rolls and damage rolls for the specified attacker. If ac is specified, the number of hits and total damage is calculated automatically. If r is specified, the attack is repeated that many times.
-    -a --list - Show a list of all attacker names
-    -a --list <attacker> - Show a list of all attacks made by the specified attacker
-    -a --file - Show the name of then file that is being used for attacks
-    -a --file <file> - Set name of the file that should be used for attacks
-    -a --new <attacker> <name> <bonus> <damage> <threatRange> <critDamage> - Create a new attack
-    -o - Open the program folder
-    -oa - Open the current csv file defining attackers
-    "
+let (|String|_|) (str : string) = Some str
 
 
 let attackerNotFound attacker =
     failwith("Attacker " + attacker + " not found.")
 
-let private getAllAttackers() = CsvLoader.loadAttacks attacksCsv
+let private getAllAttackers() =
+    try CsvLoader.loadAttacks attacksCsv
+    with :? System.IO.IOException ->
+        failwith("Could not open attacks file " + attacksCsv)
+
 
 let private getAttacks attacker =
     let d = getAllAttackers()
@@ -50,7 +37,10 @@ let private getAttacks attacker =
     | (false, _) -> attackerNotFound attacker
     | (true, attacks) -> attacks
 
-let updateAttackers = CsvLoader.writeAttackers attacksCsv
+
+//----------------------------------------------------------------------
+
+// Statistics
 
 let statistics cmd =
     printfn "Mean: %.3f\nStd.: %.3f" (Statistics.mean cmd) (Statistics.std cmd)
@@ -68,6 +58,70 @@ let statisticsAC ac attacker =
     Displayer.hline()
     printfn "%-20s%.2f\n" "Total mean damage:" totalMeanDmg
 
+//----------------------------------------------------------------------
+
+// File management and listing
+
+let openText (path : string) =
+    System.Diagnostics.Process.Start(path) |> ignore
+
+let openFolder () = openText "./"
+
+let openAttackers () = openText attacksCsv
+
+let getConfig config =
+    try printfn "%s" <| System.IO.File.ReadAllText("roll.config")
+    with :? System.IO.IOException ->
+        failwith "Could not read roll.config"
+
+let setConfig config = System.IO.File.WriteAllText("roll.config", config)
+
+let listAttackers () =
+    let attackers = getAllAttackers()
+    attackers |> Map.iter (fun attacker _ -> printfn "%s" attacker )
+
+let listAttacker attacker =
+    let attacks = getAttacks attacker
+    for attack in attacks do
+        let bonusStr = if attack.Bonus > 0 then sprintf "+%d" attack.Bonus
+                       else attack.Bonus.ToString()
+        let threatRangeStr = if attack.ThreatRange = 20 then "20"
+                             else sprintf "%d-20" attack.ThreatRange
+        printfn "%-20s%s (%O), %s/+%O" attack.Name bonusStr attack.Damage threatRangeStr attack.CritDamage
+
+let updateAttackers = CsvLoader.writeAttackers attacksCsv
+
+
+let newAttacker attacker attackName bonus damage threatRange critDamage =
+    let attackers = getAllAttackers()
+    let newAttack = Attacks.create attackName bonus damage threatRange critDamage
+    let newAttacks = match attackers.TryGetValue(attacker) with
+                     | (true, attacks) -> attacks @ [ newAttack ]
+                     | (false, _) -> [ newAttack ]
+    attackers
+    |> Map.add attacker newAttacks
+    |> updateAttackers
+
+let removeAttack attacker attack =
+    let attackers = getAllAttackers()
+    match attackers.TryGetValue(attacker) with 
+    | (false, _) -> attackerNotFound attacker
+    | (true, attacks) -> let newAttacks = attacks |> List.filter (fun a -> a.Name <> attack)
+                         if newAttacks = [] then 
+                             attackers |> Map.remove attacker |> updateAttackers
+                         else
+                             attackers |> Map.add attacker newAttacks |> updateAttackers
+
+let removeAttacker attacker =
+    let attackers = getAllAttackers()
+    match attackers.TryGetValue attacker with
+    | (false, _) -> attackerNotFound attacker
+    | (true, attacks) -> attackers |> Map.remove attacker|> updateAttackers
+
+
+//----------------------------------------------------------------------
+
+// Attacks
 
 let performAttacks attacker =
     let attacks = (getAttacks attacker)
@@ -113,81 +167,107 @@ let performManyAttacksAgainst ac attacker repetitions =
                             Displayer.performAttacksAgainst ac attacks
                             printfn ""
 
-let writeAttacksPath path =
-    System.IO.File.WriteAllText(".config", path)
+   
 
-let listAttackers () =
-    let attackers = getAllAttackers()
-    attackers |> Map.iter (fun attacker _ -> printfn "%s" attacker )
-        
+let usage () = 
+    printfn  <| "Usage:
+    roll - roll 1d20
+    roll <cmd> - roll the specified command
+    roll -c - roll ability scores for a new character
+    roll -s [<options>] - show statistics for command or attacker
+    roll -f [<options>] - configure files and attackers
+    roll -a [<options>] - perform attacks by an attacker"
 
-let listAttacks attacker =
-    let attacks = getAttacks attacker
-    for attack in attacks do
-        let bonusStr = if attack.Bonus > 0 then sprintf "+%d" attack.Bonus
-                       else attack.Bonus.ToString()
-        let threatRangeStr = if attack.ThreatRange = 20 then "20"
-                             else sprintf "%d-20" attack.ThreatRange
-        printfn "%-20s%s (%O), %s/+%O" attack.Name bonusStr attack.Damage threatRangeStr attack.CritDamage
+let rollUsage () =
+    printfn <| "Command specification:
+    <cmd1>+<cmd2> - sum the results of cmd1 and cmd2
+    (n)d(s) - roll n s-sided dice
+    (k) - return the constant number k, equivalent to kd1
+    (n)d(s)d(d) - roll n s-sided dice, then drop the d smallest ones
+    (n)x<cmd> - execute cmd and multiply the result by n
+    !<cmd> - roll the command verbosely, displaying all intermediate results.
+    "
 
-let newAttacker attacker attackName bonus damage threatRange critDamage =
-    let attackers = getAllAttackers()
-    let newAttack = Attacks.create attackName bonus damage threatRange critDamage
-    let newAttacks = match attackers.TryGetValue(attacker) with
-                     | (true, attacks) -> attacks @ [ newAttack ]
-                     | (false, _) -> [ newAttack ]
-    attackers
-    |> Map.add attacker newAttacks
-    |> updateAttackers
+let rec help cmd =
+    match cmd with 
+    | "-c" | "--character" -> printfn "Roll ability scores for a new character, rolling 4d6d1 six times"
+    | "-s" | "--statistics" -> 
+        printfn "%s" <| "Display statistics: \n"
+                      + "\t-s <cmd> [-dc <dc] - show statistics for the specified command, against DC if specified\n"
+                      + "\t-s <attacker> [-ac <ac>]- show statistics for the specified attacker, against AC if specified"
 
-let newUsage () =
-    printfn "Usage of -a --new:\n<attacker> <attackName> <bonus> <damage> <threatRange> <critDamage>\n Example:\n  roll -a --new Orc Falchion 4 2d4+4 18 2d4+4"
+    | "-fo" -> printfn "\t-fo - open the folder containing configuration files"
+    | "-fn" -> printfn "\t-fn <attacker> <attackName> <bonus> <damage> <threatRange> <critDamage> - create a new entry in the attackers list"
+    | "-fc" -> printfn "\t-fc [<config>] - get or set the current configuration"
+    | "-fa" -> printfn "\t-fa - open file containing attackers configuration"
+    | "-fl" -> printfn "\t-fl [<attacker>] - list attackers, or attacks of the specified attacker"
+    | "-f" ->
+        printfn "File control: "
+        help "-fo"
+        printfn "\t-fn <specs> - create a new attacker (write -h -fn for more details)"
+        help "-fc"
+        help "-fa"
+        help "-fl"
 
-let removeAttack attacker attack =
-    let attackers = getAllAttackers()
-    match attackers.TryGetValue(attacker) with 
-    | (false, _) -> attackerNotFound attacker
-    | (true, attacks) -> let newAttacks = attacks |> List.filter (fun a -> a.Name <> attack)
-                         if newAttacks = [] then 
-                             attackers |> Map.remove attacker |> updateAttackers
-                         else
-                             attackers |> Map.add attacker newAttacks |> updateAttackers
+    | "-a" -> printfn "%s" <| "\t-a [<repetitions>] <attacker> [-ac <ac>] - \n"
+                            + "\t\tPerform attacks for the specified attacker.\n"
+                            + "\t\tIf repetitions is specified, the attack is repeated that many times.\n"
+                            + "\t\tIf AC is specified, the number of hits and total damage will be displayed."
 
-let removeAttacker attacker =
-    let attackers = getAllAttackers()
-    match attackers.TryGetValue attacker with
-    | (false, _) -> attackerNotFound attacker
-    | (true, attacks) -> attackers |> Map.remove attacker|> updateAttackers
-
-let openText (path : string) =
-    System.Diagnostics.Process.Start(path) |> ignore
-
+    | _ -> usage()
 
 let parse (argv : string list) =
     match argv with
     | [ ] -> printfn "%d" &&"1d20"
     | [ RollCommand cmd ] -> printfn "%d" <| rollSum cmd
+    | [ VerboseRollCommand cmd ] -> rollVerbose cmd
+
+    | [ Either("-h", "--help") ] -> usage ()
+    | [ Either("-h", "--help"); "-cmd" ] -> rollUsage()
+    | [ Either("-h", "--help"); mode ] -> help mode
 
     | [ Either("-c", "--character") ] -> for _ in 1 .. 6 do rollVerbose &"4d6d1" |> ignore
 
-    | [ Either("-v", "--verbose"); RollCommand cmd ] -> rollVerbose cmd
-
+    // get statistics for specified roll
+    // get statistics when rolling against specified DC
+    // get statistics for attacker when rolling against specified AC
     | [ Either("-s", "--stat"); RollCommand cmd ] -> statistics cmd
     | [ Either("-s", "--stat"); RollCommand cmd; "-dc"; Integer dc ] -> statisticsDC dc cmd
     | [ Either("-s", "--stat"); attacker; "-ac"; Integer ac ] -> statisticsAC ac attacker
 
-    | [ "-o" ] -> openText "./" 
-    | [ "-oa" ] | [ "-o"; Either("-a", "--attack") ] -> openText attacksCsv
 
-    | [ "-af" ] | [ Either("-a", "--attack"); Either("-f", "--file") ] -> printfn "%s" attacksCsv
-    | [ "-af"; path ] | [ Either("-a", "--attack"); Either("-f", "--file"); path ] -> writeAttacksPath path
-    | [ Either("-a", "--attack"); "--list" ] -> listAttackers ()
-    | [ Either("-a", "--attack"); "--list"; attacker ] -> listAttacks attacker
-    | [ Either("-a", "--attack"); "--new"; attacker; attackName; Integer bonus; RollCommand damage; Integer threatRange; RollCommand critDamage ] -> newAttacker attacker attackName bonus damage threatRange critDamage
-    |   Either("-a", "--attack") :: "--new" :: _ -> newUsage()
-    | [ Either("-a", "--attack"); "--remove"; attacker; attack ] -> removeAttack attacker attack 
-    | [ Either("-a", "--attack"); "--removeAll"; attacker ] -> removeAttacker attacker
+    // open folder
+    // open file
+    // set config
+    // list attackers
+    // display specific attacker
+    // new attack for attacker
+    // delete attacker
+    // delete specific attack of attacker
+    | [ "-f" ] -> help "-f"
+    | [ "-fo" ] | ["-f"; Either("-f", "--open") ] -> openFolder() 
+    | [ "-fc" ] | ["-f"; Either("-c", "--config") ] -> getConfig ()
+    | [ "-fc"; config ] | [ "-f"; Either("-c", "--config"); config ] -> setConfig config
+    | [ "-fa" ] | [ "-f"; "--attacks" ] -> openAttackers()
+    | [ "-fl" ] | [ "-f"; Either("-l", "--list") ] -> listAttackers()
+    | [ "-fl"; attacker ] | [ "-f"; Either("-l", "--list"); attacker ] -> listAttacker attacker
+    | [ "-f"; "-n"; attacker; attackName; Integer bonus; RollCommand damage; Integer threatRange; RollCommand critDamage ]
+    | [ "-f"; "-new"; attacker; attackName; Integer bonus; RollCommand damage; Integer threatRange; RollCommand critDamage ]
+    | [ "-fn"; attacker; attackName; Integer bonus; RollCommand damage; Integer threatRange; RollCommand critDamage ]
+        -> newAttacker attacker attackName bonus damage threatRange critDamage
+    | "-fn" :: _ | "-f" :: Either("-n", "--new") :: _ 
+        -> help "-n"
+    | [ "-fr"; attacker; ] | [ "-f"; Either("-r", "--remove"); attacker ] 
+        -> removeAttacker attacker
+    | [ "-fr"; attacker; attack ] 
+    | [ "-f"; Either("-r", "--remove"); attacker; attack ] 
+        -> removeAttack attacker attack 
 
+
+    // roll attacks for attacker
+    // roll attacks for attacker against specific ac
+    // roll multiple attacks for attacker
+    // roll multiple attacks for attacker against specific ac
     | [ Either("-a", "--attack"); attacker ] 
         -> performAttacks attacker
     | [ Either("-a", "--attack"); attacker; "-ac"; Integer ac ]
