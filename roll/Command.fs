@@ -198,7 +198,7 @@ let rec help cmd =
     | "-c" | "--character" -> printfn "Roll ability scores for a new character, rolling 4d6d1 six times"
     | "-s" | "--statistics" -> 
         printfn "%s" <| "Display statistics: \n"
-                      + "\t-s <cmd> [-dc <dc] - show statistics for the specified command, against DC if specified\n"
+                      + "\t-s <cmd> [-dc <dc>] - show statistics for the specified command, against DC if specified\n"
                       + "\t-s <attacker> [-ac <ac>]- show statistics for the specified attacker, against AC if specified"
 
     | "-fo" -> printfn "\t-fo - open the folder containing configuration files"
@@ -214,10 +214,10 @@ let rec help cmd =
         help "-fa"
         help "-fl"
 
-    | "-a" -> printfn "%s" <| "\t-a [<repetitions>] <attacker> [-ac <ac>] - \n"
-                            + "\t\tPerform attacks for the specified attacker.\n"
-                            + "\t\tIf repetitions is specified, the attack is repeated that many times.\n"
-                            + "\t\tIf AC is specified, the number of hits and total damage will be displayed."
+    | "-a" -> printfn "%s" <| "-a [<repetitions>] <attacker> [-ac <ac>] - \n"
+                            + "\tPerform attacks for the specified attacker.\n"
+                            + "\tIf repetitions is specified, the attack is repeated that many times.\n"
+                            + "\tIf AC is specified, the number of hits and total damage is displayed.\n"
 
     | _ -> usage()
 
