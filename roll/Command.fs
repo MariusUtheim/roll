@@ -17,7 +17,7 @@ let (|Either|_|) (this, that) str =
 let (|RollCommand|_|) str = tryParseCommand str
 
 let (|VerboseRollCommand|_|) (str : string) =
-    if str.[0] = '!' then tryParseCommand (str.Substring 1)
+    if str.[0] = '@' then tryParseCommand (str.Substring 1)
     else None
 
 let (|String|_|) (str : string) = Some str
@@ -190,7 +190,7 @@ let rollUsage () =
     (k) - return the constant number k, equivalent to kd1
     (n)d(s)d(d) - roll n s-sided dice, then drop the d smallest ones
     (n)x<cmd> - execute cmd and multiply the result by n
-    !<cmd> - roll the command verbosely, displaying all intermediate results.
+    @<cmd> - roll the command verbosely, displaying all intermediate results.
     "
 
 let rec help cmd =
