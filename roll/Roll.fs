@@ -40,15 +40,26 @@ type RollResult = {
     Command : RollCommand;
     Rolls : int list;
     } with
-        member this.Sum = List.sum this.Rolls
+        member this.Sum = 
+            match this.Command with 
+            | Dice _ -> List.sum this.Rolls
+            | Constant c -> c
+            | DiceDrop (n, _, d) -> this.Rolls |> List.take (n - d) |> List.sum
+            | Sum (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount) 
+                                  { Command = cmd1; Rolls = left }.Sum + { Command = cmd2; Rolls = right }.Sum
+            | Difference (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount) 
+                                         { Command = cmd1; Rolls = left }.Sum - { Command = cmd2; Rolls = right }.Sum
+            | Multiplier (m, cmd1) -> m * { Command = cmd1; Rolls = this.Rolls }.Sum
+            | Nothing -> 0
+
         member this.Description =
             match this.Command with 
-            | Dice _ | Constant _ -> splice this.Rolls
+            | Dice _ -> splice this.Rolls
+            | Constant c -> string c
             | Sum (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
                                   sprintf "%s + %s" { Command = cmd1; Rolls = left }.Description 
                                                     { Command = cmd2; Rolls = right }.Description
             | Difference (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
-                                         let right = right |> List.map (~-)
                                          sprintf "%s - (%s)" { Command = cmd1; Rolls = left }.Description 
                                                              { Command = cmd2; Rolls = right }.Description
             | Nothing -> "-"
@@ -86,13 +97,9 @@ let rec roll cmd =
         | Dice (n, s) -> List.init n (fun _ -> dieRoll s)
         | DiceDrop (n, s, d) -> List.init n (fun _ -> dieRoll s)
                                 |> List.sortDescending
-                                |> List.take (n - d)
-        | Constant c -> [ c ]
-        | Sum (cmd1, cmd2) -> (roll cmd1).Rolls @ (roll cmd2).Rolls
-        | Difference (cmd1, cmd2) -> (roll cmd1).Rolls @ (List.map (~-) (roll cmd2).Rolls)
+        | Constant _ | Nothing -> []
+        | Sum (cmd1, cmd2) | Difference (cmd1, cmd2) -> (roll cmd1).Rolls @ (roll cmd2).Rolls
         | Multiplier (m, cmd) -> (roll cmd).Rolls
-                                 |> List.map (( *) m)
-        | Nothing -> []
     }
 
 let rec rollVerbose cmd = 
