@@ -284,4 +284,10 @@ let parse (argv : string list) =
     | [ Either("-a", "--attack"); Integer repetitions; attacker; "-ac"; Integer ac ]
         -> performManyAttacksAgainst ac attacker repetitions
 
+
+    // debug parse
+    | [ Either("-d", "--debug"); "parse"; RollCommand cmd ] 
+    | [ "-dp"; RollCommand cmd ]
+        -> printfn "%A" cmd
+
     | _ -> usage()
