@@ -14,6 +14,13 @@ type RollCommand =
     | Multiplier of int * RollCommand
     | Nothing
     with 
+        member this.RollCount =
+            match this with
+            | Dice (n, _) | DiceDrop (n, _, _) -> n
+            | Constant _ | Nothing -> 0
+            | Sum (cmd1, cmd2) | Difference (cmd1, cmd2) -> cmd1.RollCount + cmd2.RollCount
+            | Multiplier (_, cmd) -> cmd.RollCount
+
         static member (+) (cmd1, cmd2) = Sum(cmd1, cmd2)
         override this.ToString() =
             match this with
@@ -34,7 +41,18 @@ type RollResult = {
     Rolls : int list;
     } with
         member this.Sum = List.sum this.Rolls
-        member this.Description = splice this.Rolls
+        member this.Description =
+            match this.Command with 
+            | Dice _ | Constant _ -> splice this.Rolls
+            | Sum (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
+                                  sprintf "%s + %s" { Command = cmd1; Rolls = left }.Description 
+                                                    { Command = cmd2; Rolls = right }.Description
+            | Difference (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
+                                         let right = right |> List.map (~-)
+                                         sprintf "%s - (%s)" { Command = cmd1; Rolls = left }.Description 
+                                                             { Command = cmd2; Rolls = right }.Description
+            | Nothing -> "-"
+            | _ -> ""
 
 let sum (result : RollResult) = result.Sum
 
@@ -80,15 +98,6 @@ let rec roll cmd =
 let rec rollVerbose cmd = 
     if cmd <> Nothing then
         let result = roll cmd
-        let verboseString =
-            match cmd with
-            | Dice _ -> result.Description
-            | DiceDrop (n, _, _) -> "Verbose dice drops are not yet implemented"
-            | Constant c -> string c
-            | Sum _ | Difference _ -> failwith "Verbose sums are not yet implemented"
-            | Multiplier _ -> failwith "Verbose multiplications are not yet implemented"
-            | Nothing -> ""
-
         printfn "%-4d= %s" result.Sum result.Description
 
 
