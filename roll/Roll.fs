@@ -56,14 +56,16 @@ type RollResult = {
             match this.Command with 
             | Dice _ -> splice this.Rolls
             | Constant c -> string c
+            | DiceDrop (n, s, d) -> let left, right = this.Rolls |> List.splitAt (n - d) 
+                                    sprintf "(%s // %s)" (splice left) (splice right)
             | Sum (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
                                   sprintf "%s + %s" { Command = cmd1; Rolls = left }.Description 
                                                     { Command = cmd2; Rolls = right }.Description
             | Difference (cmd1, cmd2) -> let left, right = this.Rolls |> List.splitAt (cmd1.RollCount)
                                          sprintf "%s - (%s)" { Command = cmd1; Rolls = left }.Description 
                                                              { Command = cmd2; Rolls = right }.Description
+            | Multiplier (m, cmd) -> sprintf "%dx(%s)" m { Command = cmd; Rolls = this.Rolls}.Description
             | Nothing -> "-"
-            | _ -> ""
 
 let sum (result : RollResult) = result.Sum
 
